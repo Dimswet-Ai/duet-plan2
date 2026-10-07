@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Семейный Очаг | Таск-менеджер & Желания</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Canvas Confetti for task celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fdf4f5',
+              100: '#fbe8eb',
+              200: '#f7d5da',
+              300: '#f0b3be',
+              400: '#e58597',
+              500: '#d75872',
+              600: '#c13d58',
+              700: '#a22d44',
+              800: '#87283c',
+              900: '#732537',
+            },
+            couple: {
+              he: '#3b82f6',
+              she: '#ec4899',
+              both: '#8b5cf6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar and animations */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.03);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(150, 150, 150, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(150, 150, 150, 0.5);
+    }
+    .tap-highlight-transparent {
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen flex flex-col tap-highlight-transparent select-none">
+
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-rose-500 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i class="fa-solid fa-heart-pulse text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-900 leading-tight">Семейный Очаг</h1>
+          <p class="text-xs text-slate-500 flex items-center gap-1.5" id="syncStatusIndicator">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+            <span id="syncText">Синхронизировано</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- User Role Selector & Family Sync Settings -->
+      <div class="flex items-center space-x-2">
+        <button id="toggleUserBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition">
+          <span id="activeUserBadge" class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+          <span id="activeUserName">Муж</span>
+          <i class="fa-solid fa-repeat text-[10px] text-slate-400"></i>
+        </button>
+
+        <button onclick="openFamilySyncModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition" title="Код синхронизации пары">
+          <i class="fa-solid fa-users-viewfinder text-sm"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-5xl mx-auto px-4 flex space-x-2 border-t border-slate-100 overflow-x-auto py-2 scrollbar-none">
+      <button onclick="switchTab('family')" id="tab-family" class="nav-tab active flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition bg-brand-50 text-brand-700">
+        <i class="fa-solid fa-people-roof text-sm"></i>
+        <span>Семейные дела</span>
+        <span id="familyBadge" class="bg-brand-200 text-brand-800 text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
+      </button>
+
+      <button onclick="switchTab('personal')" id="tab-personal" class="nav-tab flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition text-slate-600 hover:bg-slate-100">
+        <i class="fa-solid fa-user-lock text-sm"></i>
+        <span>Мои личные</span>
+        <span id="personalBadge" class="bg-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
+      </button>
+
+      <button onclick="switchTab('wishes')" id="tab-wishes" class="nav-tab flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition text-slate-600 hover:bg-slate-100">
+        <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+        <span>Желания & Мечты</span>
+        <span id="wishesBadge" class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full pb-28">
+    
+    <!-- Controls bar: Filters & Search & New Item Button -->
+    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between mb-5">
+      <!-- Quick Filter Pills -->
+      <div id="filterContainer" class="flex items-center gap-2 overflow-x-auto py-1">
+        <button onclick="setFilter('all')" data-filter="all" class="filter-btn active text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-white">Все</button>
+        <button onclick="setFilter('today')" data-filter="today" class="filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100">На сегодня</button>
+        <button onclick="setFilter('assignedMe')" data-filter="assignedMe" class="filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100">Мне</button>
+        <button onclick="setFilter('completed')" data-filter="completed" class="filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100">Завершённые</button>
+      </div>
+
+      <!-- Action Button -->
+      <div class="flex items-center gap-2">
+        <button id="mainCreateBtn" onclick="openCreateModal()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-rose-500 hover:from-brand-700 hover:to-rose-600 text-white text-sm font-semibold shadow-md shadow-brand-500/25 transition active:scale-95">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span id="mainCreateBtnText">Добавить задачу</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active List Container -->
+    <div id="itemsList" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      <!-- Dynamic cards rendered by JS -->
+    </div>
+
+    <!-- Empty State Template -->
+    <div id="emptyState" class="hidden text-center py-16 px-4">
+      <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-400 text-3xl">
+        <i class="fa-regular fa-calendar-check"></i>
+      </div>
+      <h3 class="text-base font-semibold text-slate-800" id="emptyTitle">Всё сделано!</h3>
+      <p class="text-sm text-slate-500 max-w-sm mx-auto mt-1" id="emptyDesc">Здесь пока нет задач. Добавьте новое дело, чтобы не забыть!</p>
+    </div>
+  </main>
+
+  <div id="itemModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-xs hidden transition-opacity">
+    <div class="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in slide-in-from-bottom duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 id="modalTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-plus text-brand-600"></i>
+          <span>Новая задача</span>
+        </h3>
+        <button onclick="closeModal('itemModal')" class="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Modal Form Body -->
+      <form id="itemForm" onsubmit="handleFormSubmit(event)" class="p-6 overflow-y-auto space-y-4">
+        <input type="hidden" id="editItemId">
+        <input type="hidden" id="itemType" value="task">
+
+        <!-- Title field -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Что нужно сделать? *</label>
+          <input type="text" id="itemTitle" required placeholder="Например: Купить индейку" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition">
+        </div>
+
+        <!-- Task Specific Fields (Hidden for Wishlist) -->
+        <div id="taskFieldsSection" class="space-y-4">
+          <!-- Location field -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <i class="fa-solid fa-location-dot text-rose-500"></i>
+              <span>Место / Магазин</span>
+            </label>
+            <div class="relative">
+              <input type="text" id="itemLocation" placeholder="Например: магазин Volna, ул. Ленина 42" class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition">
+              <i class="fa-solid fa-store absolute left-3 top-3 text-slate-400 text-xs"></i>
+            </div>
+          </div>
+
+          <!-- Date & Time Grid -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Дата</label>
+              <input type="date" id="itemDate" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Время</label>
+              <input type="time" id="itemTime" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition bg-white">
+            </div>
+          </div>
+
+          <!-- Assignee Selector -->
+          <div id="assigneeWrapper">
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Ответственный</label>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="assignee" value="husband" class="peer sr-only" checked>
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-blue-500 peer-checked:bg-blue-50/70 peer-checked:text-blue-700 font-medium text-xs flex flex-col items-center gap-1 transition">
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span class="assignee-husband-name">Муж</span>
+                </div>
+              </label>
+
+              <label class="cursor-pointer">
+                <input type="radio" name="assignee" value="wife" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-pink-500 peer-checked:bg-pink-50/70 peer-checked:text-pink-700 font-medium text-xs flex flex-col items-center gap-1 transition">
+                  <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+                  <span class="assignee-wife-name">Жена</span>
+                </div>
+              </label>
+
+              <label class="cursor-pointer">
+                <input type="radio" name="assignee" value="both" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-purple-500 peer-checked:bg-purple-50/70 peer-checked:text-purple-700 font-medium text-xs flex flex-col items-center gap-1 transition">
+                  <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                  <span>Вместе ❤️</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Scope: Family or Personal -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Лента размещения</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="taskScope" value="family" class="peer sr-only" checked>
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-brand-600 peer-checked:bg-brand-50 peer-checked:text-brand-700 font-medium text-xs flex items-center justify-center gap-2 transition">
+                  <i class="fa-solid fa-users"></i>
+                  <span>Семейная лента</span>
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="taskScope" value="personal" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-slate-800 peer-checked:bg-slate-100 peer-checked:text-slate-900 font-medium text-xs flex items-center justify-center gap-2 transition">
+                  <i class="fa-solid fa-lock"></i>
+                  <span>Личная лента</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wish Specific Fields (Shown when in Wishlist) -->
+        <div id="wishFieldsSection" class="space-y-4 hidden">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Категория</label>
+              <select id="wishCategory" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition bg-white">
+                <option value="gift">🎁 Подарок / Вещь</option>
+                <option value="travel">✈️ Путешествие</option>
+                <option value="home">🏡 Для уюта и дома</option>
+                <option value="experience">🎭 Впечатление / Свидание</option>
+                <option value="other">✨ Другое</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Примерная цена (₽/₸/$)</label>
+              <input type="text" id="wishPrice" placeholder="5 000" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Ссылка на товар / место</label>
+            <input type="url" id="wishLink" placeholder="https://..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Чьё это желание?</label>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="wishOwner" value="husband" class="peer sr-only" checked>
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-blue-500 peer-checked:bg-blue-50/70 peer-checked:text-blue-700 font-medium text-xs flex flex-col items-center gap-1 transition">
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span class="assignee-husband-name">Муж</span>
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="wishOwner" value="wife" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-pink-500 peer-checked:bg-pink-50/70 peer-checked:text-pink-700 font-medium text-xs flex flex-col items-center gap-1 transition">
+                  <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+                  <span class="assignee-wife-name">Жена</span>
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="wishOwner" value="both" class="peer sr-only">
+                <div class="p-2.5 text-center rounded-xl border border-slate-200 peer-checked:border-purple-500 peer-checked:bg-purple-50/70 peer-checked:text-purple-700 font-medium text-xs flex flex-col items-center gap-1 transition">
+                  <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                  <span>Общая мечта</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note / Comment field -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Заметка / Детали</label>
+          <textarea id="itemNote" rows="2" placeholder="Дополнительные пожелания, размер, сорт..." class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm transition"></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-2">
+          <button type="submit" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-md transition active:scale-98 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i>
+            <span id="saveBtnText">Сохранить</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="syncModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs hidden p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2 text-slate-800 font-bold">
+          <i class="fa-solid fa-handshake text-brand-600 text-lg"></i>
+          <span>Синхронизация пары</span>
+        </div>
+        <button onclick="closeModal('syncModal')" class="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-400 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Чтобы вы и ваша супруга видели одинаковые семейные дела и мечты на разных телефонах и компьютерах, используйте единый <strong class="text-slate-800">Семейный Код</strong>.
+      </p>
+
+      <div class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Ваш семейный ключ комнаты</label>
+          <div class="flex gap-2">
+            <input type="text" id="familyCodeInput" class="w-full px-3 py-2 bg-white rounded-xl border border-slate-200 font-mono text-xs uppercase font-bold tracking-widest text-slate-800" readonly>
+            <button onclick="copyFamilyCode()" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition flex items-center gap-1.5 shadow-xs">
+              <i class="fa-regular fa-copy text-xs"></i>
+              <span>Копия</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-200/60">
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Подключиться к комнате супруги</label>
+          <div class="flex gap-2">
+            <input type="text" id="joinCodeInput" placeholder="Вставьте код..." class="w-full px-3 py-2 bg-white rounded-xl border border-slate-200 font-mono text-xs uppercase tracking-wider">
+            <button onclick="applyFamilyCode()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold transition shadow-xs">
+              Связать
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Names customization -->
+      <div class="pt-2 space-y-2">
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Имена в приложении</label>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <span class="text-[10px] text-blue-600 font-medium">Муж (Вы):</span>
+            <input type="text" id="customHusbandName" value="Муж" onchange="updateProfileNames()" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium">
+          </div>
+          <div>
+            <span class="text-[10px] text-pink-600 font-medium">Жена:</span>
+            <input type="text" id="customWifeName" value="Жена" onchange="updateProfileNames()" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium">
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button onclick="closeModal('syncModal')" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold">Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2.5 transition-all opacity-0 pointer-events-none translate-y-3">
+    <i id="toastIcon" class="fa-solid fa-check text-emerald-400"></i>
+    <span id="toastMessage">Уведомление</span>
+  </div>
+
+  <div id="confirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs hidden p-4">
+    <div class="w-full max-w-xs bg-white rounded-3xl shadow-2xl p-5 text-center space-y-3">
+      <div class="w-12 h-12 mx-auto rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-xl">
+        <i class="fa-regular fa-trash-can"></i>
+      </div>
+      <h4 class="text-sm font-bold text-slate-800" id="confirmTitle">Удалить запись?</h4>
+      <p class="text-xs text-slate-500" id="confirmDesc">Это действие нельзя отменить.</p>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="closeModal('confirmModal')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">Отмена</button>
+        <button id="confirmActionBtn" class="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      deleteDoc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Application state
+    window.AppState = {
+      currentUser: 'husband', // 'husband' or 'wife'
+      activeTab: 'family',     // 'family', 'personal', 'wishes'
+      currentFilter: 'all',    // 'all', 'today', 'assignedMe', 'completed'
+      husbandName: 'Муж',
+      wifeName: 'Жена',
+      familyCode: '',
+      items: [],
+      db: null,
+      auth: null,
+      appId: typeof __app_id !== 'undefined' ? __app_id : 'family-task-manager-hub',
+      unsubscribeSnapshot: null
+    };
+
+    async function initFirebaseStorage() {
+      try {
+        let firebaseConfig = null;
+        if (typeof __firebase_config !== 'undefined') {
+          firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+          // Fallback dummy structure if running standalone
+          console.warn("Using offline / in-memory local fallback sync.");
+        }
+
+        if (firebaseConfig) {
+          const app = initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+          const db = getFirestore(app);
+
+          // Authenticate
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+
+          window.AppState.db = db;
+          window.AppState.auth = auth;
+
+          setupFirestoreListener();
+          updateSyncIndicator(true, "Синхронизация активна");
+        } else {
+          loadLocalFallback();
+        }
+      } catch (err) {
+        console.error("Firebase init fallback to local:", err);
+        loadLocalFallback();
+      }
+    }
+
+    function setupFirestoreListener() {
+      const db = window.AppState.db;
+      if (!db) return;
+
+      if (window.AppState.unsubscribeSnapshot) {
+        window.AppState.unsubscribeSnapshot();
+      }
+
+      // Mandatory Rule 1: STRICT PATH `/artifacts/{appId}/public/data/{collectionName}`
+      const colRef = collection(db, 'artifacts', window.AppState.appId, 'public', 'data', 'family_items');
+
+      window.AppState.unsubscribeSnapshot = onSnapshot(colRef, (snapshot) => {
+        const fetchedItems = [];
+        snapshot.forEach((docSnap) => {
+          fetchedItems.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        // Filter and sort in memory (Rule 2)
+        window.AppState.items = fetchedItems;
+        renderItems();
+        updateBadges();
+      }, (error) => {
+        console.error("Firestore onSnapshot error:", error);
+        updateSyncIndicator(false, "Сбой связи, локальный режим");
+      });
+    }
+
+    function loadLocalFallback() {
+      updateSyncIndicator(true, "Локальный режим (готов к работе)");
+      const stored = localStorage.getItem('family_app_items');
+      if (stored) {
+        try {
+          window.AppState.items = JSON.parse(stored);
+        } catch (e) {
+          window.AppState.items = [];
+        }
+      } else {
+        // Initial sample items to show the feature capabilities immediately
+        window.AppState.items = [
+          {
+            id: 'sample-1',
+            type: 'task',
+            scope: 'family',
+            title: 'Купить индейку и свежие овощи',
+            location: 'магазин Volna',
+            date: new Date().toISOString().split('T')[0],
+            time: '18:30',
+            assignee: 'husband',
+            note: 'Филе грудки или бедра для ужина',
+            completed: false,
+            createdAt: Date.now()
+          },
+          {
+            id: 'sample-2',
+            type: 'task',
+            scope: 'family',
+            title: 'Записаться на совместный массаж',
+            location: 'Спа-клуб Лагуна',
+            date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+            time: '14:00',
+            assignee: 'wife',
+            note: 'Выбрать программу на двоих на субботу',
+            completed: false,
+            createdAt: Date.now() - 50000
+          },
+          {
+            id: 'sample-3',
+            type: 'task',
+            scope: 'personal',
+            owner: 'husband',
+            title: 'Заехать на шиномонтаж',
+            location: 'Автосервис Норд',
+            date: new Date().toISOString().split('T')[0],
+            time: '12:00',
+            assignee: 'husband',
+            note: 'Проверить балансировку колес',
+            completed: false,
+            createdAt: Date.now() - 100000
+          },
+          {
+            id: 'sample-4',
+            type: 'wish',
+            title: 'Поездка в горы на уютный уикенд',
+            category: 'travel',
+            price: '35 000 ₽',
+            link: '',
+            owner: 'both',
+            note: 'Снять домик с камином и видом на сосны',
+            completed: false,
+            createdAt: Date.now() - 200000
+          },
+          {
+            id: 'sample-5',
+            type: 'wish',
+            title: 'Умная колонка Яндекс Станция Дуо',
+            category: 'gift',
+            price: '22 000 ₽',
+            link: 'https://market.yandex.ru',
+            owner: 'wife',
+            note: 'Цвет: бежевый или лавандовый',
+            completed: false,
+            createdAt: Date.now() - 300000
+          }
+        ];
+        saveLocal();
+      }
+      renderItems();
+      updateBadges();
+    }
+
+    function saveLocal() {
+      localStorage.setItem('family_app_items', JSON.stringify(window.AppState.items));
+    }
+
+    window.saveItemToCloud = async function(item) {
+      if (window.AppState.db) {
+        try {
+          const docRef = doc(window.AppState.db, 'artifacts', window.AppState.appId, 'public', 'data', 'family_items', item.id);
+          await setDoc(docRef, item);
+        } catch (e) {
+          console.error("Error writing to Firestore:", e);
+        }
+      } else {
+        const index = window.AppState.items.findIndex(i => i.id === item.id);
+        if (index >= 0) {
+          window.AppState.items[index] = item;
+        } else {
+          window.AppState.items.unshift(item);
+        }
+        saveLocal();
+        renderItems();
+        updateBadges();
+      }
+    };
+
+    window.deleteItemFromCloud = async function(id) {
+      if (window.AppState.db) {
+        try {
+          const docRef = doc(window.AppState.db, 'artifacts', window.AppState.appId, 'public', 'data', 'family_items', id);
+          await deleteDoc(docRef);
+        } catch (e) {
+          console.error("Error deleting from Firestore:", e);
+        }
+      } else {
+        window.AppState.items = window.AppState.items.filter(i => i.id !== id);
+        saveLocal();
+        renderItems();
+        updateBadges();
+      }
+    };
+
+    // Load family code from storage or generate
+    const savedCode = localStorage.getItem('family_hub_code') || ('FAMILY-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+    localStorage.setItem('family_hub_code', savedCode);
+    window.AppState.familyCode = savedCode;
+    document.getElementById('familyCodeInput').value = savedCode;
+
+    // Load custom names
+    const savedHName = localStorage.getItem('family_husband_name');
+    const savedWName = localStorage.getItem('family_wife_name');
+    if (savedHName) window.AppState.husbandName = savedHName;
+    if (savedWName) window.AppState.wifeName = savedWName;
+    document.getElementById('customHusbandName').value = window.AppState.husbandName;
+    document.getElementById('customWifeName').value = window.AppState.wifeName;
+    updateUserLabels();
+
+    initFirebaseStorage();
+  </script>
+
+  <script>
+    // Tab Switching
+    function switchTab(tab) {
+      window.AppState.activeTab = tab;
+      
+      // Update Tab Styles
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.classList.remove('bg-brand-50', 'text-brand-700', 'bg-slate-900', 'text-white');
+        btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+      });
+
+      const activeEl = document.getElementById(`tab-${tab}`);
+      if (activeEl) {
+        activeEl.classList.remove('text-slate-600', 'hover:bg-slate-100');
+        activeEl.classList.add('bg-brand-50', 'text-brand-700');
+      }
+
+      // Adjust Main Add Button Text
+      const addBtnText = document.getElementById('mainCreateBtnText');
+      const filterBox = document.getElementById('filterContainer');
+      
+      if (tab === 'wishes') {
+        addBtnText.textContent = 'Добавить желание';
+        filterBox.classList.add('opacity-40', 'pointer-events-none');
+      } else {
+        addBtnText.textContent = 'Добавить задачу';
+        filterBox.classList.remove('opacity-40', 'pointer-events-none');
+      }
+
+      renderItems();
+    }
+
+    // Role switcher toggle
+    document.getElementById('toggleUserBtn').addEventListener('click', () => {
+      const isHusband = window.AppState.currentUser === 'husband';
+      window.AppState.currentUser = isHusband ? 'wife' : 'husband';
+      updateUserLabels();
+      renderItems();
+      showToast(`Вы переключились на профиль: ${isHusband ? window.AppState.wifeName : window.AppState.husbandName}`, 'fa-user-check');
+    });
+
+    function updateUserLabels() {
+      const isHusband = window.AppState.currentUser === 'husband';
+      const badge = document.getElementById('activeUserBadge');
+      const name = document.getElementById('activeUserName');
+      
+      if (isHusband) {
+        badge.className = 'w-2.5 h-2.5 rounded-full bg-blue-500';
+        name.textContent = window.AppState.husbandName;
+      } else {
+        badge.className = 'w-2.5 h-2.5 rounded-full bg-pink-500';
+        name.textContent = window.AppState.wifeName;
+      }
+
+      // Update in modal radios
+      document.querySelectorAll('.assignee-husband-name').forEach(el => el.textContent = window.AppState.husbandName);
+      document.querySelectorAll('.assignee-wife-name').forEach(el => el.textContent = window.AppState.wifeName);
+    }
+
+    function updateProfileNames() {
+      const h = document.getElementById('customHusbandName').value.trim() || 'Муж';
+      const w = document.getElementById('customWifeName').value.trim() || 'Жена';
+      window.AppState.husbandName = h;
+      window.AppState.wifeName = w;
+      localStorage.setItem('family_husband_name', h);
+      localStorage.setItem('family_wife_name', w);
+      updateUserLabels();
+      renderItems();
+      showToast('Имена обновлены');
+    }
+
+    function setFilter(filterType) {
+      window.AppState.currentFilter = filterType;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-filter') === filterType) {
+          btn.className = 'filter-btn active text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-white';
+        } else {
+          btn.className = 'filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100';
+        }
+      });
+      renderItems();
+    }
+
+    function getFilteredItems() {
+      const tab = window.AppState.activeTab;
+      const user = window.AppState.currentUser;
+      const filter = window.AppState.currentFilter;
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let list = window.AppState.items || [];
+
+      // 1. Filter by Tab
+      if (tab === 'family') {
+        list = list.filter(i => i.type === 'task' && i.scope === 'family');
+      } else if (tab === 'personal') {
+        list = list.filter(i => i.type === 'task' && i.scope === 'personal' && i.owner === user);
+      } else if (tab === 'wishes') {
+        list = list.filter(i => i.type === 'wish');
+      }
+
+      // 2. Filter by status / due date (if tasks)
+      if (tab !== 'wishes') {
+        if (filter === 'completed') {
+          list = list.filter(i => i.completed);
+        } else {
+          if (filter === 'today') {
+            list = list.filter(i => !i.completed && i.date === todayStr);
+          } else if (filter === 'assignedMe') {
+            list = list.filter(i => !i.completed && (i.assignee === user || i.assignee === 'both'));
+          } else {
+            // 'all': active first, then completed at bottom
+          }
+        }
+      }
+
+      // In-memory Sorting (Rule 2)
+      return list.sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        if (a.date && b.date) {
+          if (a.date !== b.date) return a.date.localeCompare(b.date);
+          if (a.time && b.time) return a.time.localeCompare(b.time);
+        }
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+    }
+
+    function renderItems() {
+      const container = document.getElementById('itemsList');
+      const emptyState = document.getElementById('emptyState');
+      const items = getFilteredItems();
+
+      container.innerHTML = '';
+
+      if (items.length === 0) {
+        emptyState.classList.remove('hidden');
+        if (window.AppState.activeTab === 'wishes') {
+          document.getElementById('emptyTitle').textContent = 'Список желаний пуст';
+          document.getElementById('emptyDesc').textContent = 'Добавьте подарки, мечты о поездках или совместные хотелки!';
+        } else {
+          document.getElementById('emptyTitle').textContent = 'Дел пока нет';
+          document.getElementById('emptyDesc').textContent = 'Все задачи закрыты или ещё не добавлены!';
+        }
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      items.forEach(item => {
+        if (item.type === 'wish') {
+          container.appendChild(createWishCard(item));
+        } else {
+          container.appendChild(createTaskCard(item));
+        }
+      });
+    }
+
+    function createTaskCard(item) {
+      const card = document.createElement('div');
+      const isCompleted = item.completed;
+      
+      let assigneeBadge = '';
+      if (item.assignee === 'husband') {
+        assigneeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>${window.AppState.husbandName}</span>`;
+      } else if (item.assignee === 'wife') {
+        assigneeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/60"><span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span>${window.AppState.wifeName}</span>`;
+      } else {
+        assigneeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/60"><span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>Вместе ❤️</span>`;
+      }
+
+      // Date badge logic
+      let dateTimeBadge = '';
+      if (item.date) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const isToday = item.date === todayStr;
+        const isPast = item.date < todayStr && !isCompleted;
+
+        const dateFormatted = new Date(item.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        const timeFormatted = item.time ? ` в ${item.time}` : '';
+
+        const badgeClass = isPast 
+          ? 'bg-rose-50 text-rose-600 border border-rose-200' 
+          : (isToday ? 'bg-amber-50 text-amber-700 border border-amber-200 font-bold' : 'bg-slate-100 text-slate-600');
+
+        dateTimeBadge = `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] ${badgeClass}">
+            <i class="fa-regular fa-clock text-[10px]"></i>
+            ${isToday ? 'Сегодня' : dateFormatted}${timeFormatted}
+            ${isPast ? '<span class="text-[9px] uppercase font-bold ml-1">Просрочено</span>' : ''}
+          </span>
+        `;
+      }
+
+      // Location clickable button to maps
+      let locationBadge = '';
+      if (item.location) {
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`;
+        locationBadge = `
+          <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+            <i class="fa-solid fa-location-dot text-rose-500 text-[11px]"></i>
+            <span class="truncate max-w-[170px]">${item.location}</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-400"></i>
+          </a>
+        `;
+      }
+
+      card.className = `p-4 rounded-2xl bg-white border ${isCompleted ? 'border-slate-100 opacity-60' : 'border-slate-200/80 shadow-xs hover:border-slate-300'} transition flex flex-col justify-between`;
+      card.innerHTML = `
+        <div>
+          <!-- Header: Checkbox + Title + Actions -->
+          <div class="flex items-start gap-3">
+            <button onclick="toggleItemComplete('${item.id}')" class="mt-0.5 w-6 h-6 rounded-lg border-2 ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-brand-500'} flex items-center justify-center transition shrink-0">
+              <i class="fa-solid fa-check text-xs ${isCompleted ? '' : 'hidden'}"></i>
+            </button>
+            <div class="flex-1 min-w-0">
+              <h4 class="text-sm font-semibold text-slate-900 leading-snug ${isCompleted ? 'line-through text-slate-400' : ''}">${escapeHtml(item.title)}</h4>
+              ${item.note ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${escapeHtml(item.note)}</p>` : ''}
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="openEditModal('${item.id}')" class="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition" title="Редактировать">
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button onclick="confirmDeleteItem('${item.id}')" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" title="Удалить">
+                <i class="fa-regular fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Middle Badges: Location & Time -->
+          <div class="flex flex-wrap items-center gap-2 mt-3 pl-9">
+            ${dateTimeBadge}
+            ${locationBadge}
+          </div>
+        </div>
+
+        <!-- Footer: Assignee & Scope info -->
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 pl-9">
+          <div>${assigneeBadge}</div>
+          <span class="text-[10px] text-slate-400 font-medium">
+            ${item.scope === 'family' ? '<i class="fa-solid fa-users mr-1"></i>Семейное' : '<i class="fa-solid fa-lock mr-1"></i>Личное'}
+          </span>
+        </div>
+      `;
+      return card;
+    }
+
+    function createWishCard(item) {
+      const card = document.createElement('div');
+      const isCompleted = item.completed;
+
+      let categoryIcon = 'fa-gift';
+      let categoryName = 'Подарок';
+      if (item.category === 'travel') { categoryIcon = 'fa-plane-departure'; categoryName = 'Путешествие'; }
+      if (item.category === 'home') { categoryIcon = 'fa-couch'; categoryName = 'Уют & Дом'; }
+      if (item.category === 'experience') { categoryIcon = 'fa-masks-theater'; categoryName = 'Впечатление'; }
+      if (item.category === 'other') { categoryIcon = 'fa-star'; categoryName = 'Мечта'; }
+
+      let ownerText = '';
+      if (item.owner === 'husband') ownerText = `<span class="text-blue-600">Хочет ${window.AppState.husbandName}</span>`;
+      else if (item.owner === 'wife') ownerText = `<span class="text-pink-600">Хочет ${window.AppState.wifeName}</span>`;
+      else ownerText = `<span class="text-purple-600">Общая мечта ❤️</span>`;
+
+      card.className = `p-4 rounded-2xl bg-white border ${isCompleted ? 'border-emerald-200 bg-emerald-50/20 opacity-70' : 'border-slate-200/80 shadow-xs hover:border-slate-300'} transition flex flex-col justify-between`;
+      card.innerHTML = `
+        <div>
+          <!-- Header -->
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-xs">
+                <i class="fa-solid ${categoryIcon}"></i>
+              </span>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">${categoryName}</span>
+            </div>
+            
+            <div class="flex items-center gap-1">
+              <button onclick="toggleItemComplete('${item.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} transition flex items-center gap-1">
+                <i class="fa-solid ${isCompleted ? 'fa-check-double' : 'fa-sparkles'} text-[10px]"></i>
+                <span>${isCompleted ? 'Исполнено!' : 'Исполнить'}</span>
+              </button>
+              <button onclick="openEditModal('${item.id}')" class="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition">
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button onclick="confirmDeleteItem('${item.id}')" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition">
+                <i class="fa-regular fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <h4 class="text-sm font-bold text-slate-900 ${isCompleted ? 'line-through text-slate-400' : ''}">${escapeHtml(item.title)}</h4>
+          ${item.note ? `<p class="text-xs text-slate-500 mt-1">${escapeHtml(item.note)}</p>` : ''}
+
+          <!-- Details: Price & Link -->
+          <div class="flex flex-wrap items-center gap-2 mt-3">
+            ${item.price ? `
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                <i class="fa-solid fa-tag text-[10px]"></i>
+                ${escapeHtml(item.price)}
+              </span>
+            ` : ''}
+
+            ${item.link ? `
+              <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                <i class="fa-solid fa-link text-[10px]"></i>
+                <span>Ссылка</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-400"></i>
+              </a>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs font-medium">
+          <div>${ownerText}</div>
+          <span class="text-[10px] text-slate-400">Хотелка</span>
+        </div>
+      `;
+      return card;
+    }
+
+    function updateBadges() {
+      const items = window.AppState.items || [];
+      const user = window.AppState.currentUser;
+
+      const familyCount = items.filter(i => i.type === 'task' && i.scope === 'family' && !i.completed).length;
+      const personalCount = items.filter(i => i.type === 'task' && i.scope === 'personal' && i.owner === user && !i.completed).length;
+      const wishesCount = items.filter(i => i.type === 'wish' && !i.completed).length;
+
+      document.getElementById('familyBadge').textContent = familyCount;
+      document.getElementById('personalBadge').textContent = personalCount;
+      document.getElementById('wishesBadge').textContent = wishesCount;
+    }
+
+    function openCreateModal() {
+      const isWishTab = window.AppState.activeTab === 'wishes';
+      document.getElementById('itemForm').reset();
+      document.getElementById('editItemId').value = '';
+      
+      const type = isWishTab ? 'wish' : 'task';
+      document.getElementById('itemType').value = type;
+
+      if (type === 'wish') {
+        document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i><span>Новое желание</span>';
+        document.getElementById('taskFieldsSection').classList.add('hidden');
+        document.getElementById('wishFieldsSection').classList.remove('hidden');
+      } else {
+        document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-calendar-plus text-brand-600"></i><span>Новая задача</span>';
+        document.getElementById('taskFieldsSection').classList.remove('hidden');
+        document.getElementById('wishFieldsSection').classList.add('hidden');
+        
+        // Default scope based on current tab
+        const defaultScope = window.AppState.activeTab === 'personal' ? 'personal' : 'family';
+        const scopeRadio = document.querySelector(`input[name="taskScope"][value="${defaultScope}"]`);
+        if (scopeRadio) scopeRadio.checked = true;
+
+        // Default assignee based on current profile
+        const assigneeRadio = document.querySelector(`input[name="assignee"][value="${window.AppState.currentUser}"]`);
+        if (assigneeRadio) assigneeRadio.checked = true;
+
+        // Default date to today
+        document.getElementById('itemDate').value = new Date().toISOString().split('T')[0];
+      }
+
+      openModal('itemModal');
+    }
+
+    function openEditModal(id) {
+      const item = (window.AppState.items || []).find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('editItemId').value = item.id;
+      document.getElementById('itemType').value = item.type;
+      document.getElementById('itemTitle').value = item.title || '';
+      document.getElementById('itemNote').value = item.note || '';
+
+      if (item.type === 'wish') {
+        document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i><span>Редактировать желание</span>';
+        document.getElementById('taskFieldsSection').classList.add('hidden');
+        document.getElementById('wishFieldsSection').classList.remove('hidden');
+        
+        document.getElementById('wishCategory').value = item.category || 'gift';
+        document.getElementById('wishPrice').value = item.price || '';
+        document.getElementById('wishLink').value = item.link || '';
+
+        const ownerRadio = document.querySelector(`input[name="wishOwner"][value="${item.owner || 'both'}"]`);
+        if (ownerRadio) ownerRadio.checked = true;
+      } else {
+        document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-calendar-check text-brand-600"></i><span>Редактировать задачу</span>';
+        document.getElementById('taskFieldsSection').classList.remove('hidden');
+        document.getElementById('wishFieldsSection').classList.add('hidden');
+
+        document.getElementById('itemLocation').value = item.location || '';
+        document.getElementById('itemDate').value = item.date || '';
+        document.getElementById('itemTime').value = item.time || '';
+
+        const assigneeRadio = document.querySelector(`input[name="assignee"][value="${item.assignee || 'both'}"]`);
+        if (assigneeRadio) assigneeRadio.checked = true;
+
+        const scopeRadio = document.querySelector(`input[name="taskScope"][value="${item.scope || 'family'}"]`);
+        if (scopeRadio) scopeRadio.checked = true;
+      }
+
+      openModal('itemModal');
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('editItemId').value || ('item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4));
+      const type = document.getElementById('itemType').value;
+      const title = document.getElementById('itemTitle').value.trim();
+      const note = document.getElementById('itemNote').value.trim();
+
+      if (!title) return;
+
+      let itemData = {
+        id,
+        type,
+        title,
+        note,
+        createdAt: Date.now(),
+        completed: false
+      };
+
+      // Keep existing completed state if editing
+      const existing = (window.AppState.items || []).find(i => i.id === id);
+      if (existing) {
+        itemData.completed = existing.completed;
+        itemData.createdAt = existing.createdAt || Date.now();
+      }
+
+      if (type === 'wish') {
+        itemData.category = document.getElementById('wishCategory').value;
+        itemData.price = document.getElementById('wishPrice').value.trim();
+        itemData.link = document.getElementById('wishLink').value.trim();
+        itemData.owner = document.querySelector('input[name="wishOwner"]:checked')?.value || 'both';
+      } else {
+        itemData.location = document.getElementById('itemLocation').value.trim();
+        itemData.date = document.getElementById('itemDate').value;
+        itemData.time = document.getElementById('itemTime').value;
+        itemData.assignee = document.querySelector('input[name="assignee"]:checked')?.value || 'husband';
+        itemData.scope = document.querySelector('input[name="taskScope"]:checked')?.value || 'family';
+        itemData.owner = window.AppState.currentUser; // creator
+      }
+
+      window.saveItemToCloud(itemData);
+      closeModal('itemModal');
+      showToast(existing ? 'Запись обновлена' : 'Добавлено в список!', 'fa-check');
+    }
+
+    function toggleItemComplete(id) {
+      const item = (window.AppState.items || []).find(i => i.id === id);
+      if (!item) return;
+
+      item.completed = !item.completed;
+      window.saveItemToCloud({ ...item });
+
+      if (item.completed) {
+        // Trigger celebratory confetti on completion
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.8 },
+            colors: ['#d75872', '#ec4899', '#3b82f6', '#10b981']
+          });
+        } catch (e) {}
+        showToast('Отлично сработано! Выполнено 🎉', 'fa-trophy');
+      }
+    }
+
+    let itemPendingDelete = null;
+    function confirmDeleteItem(id) {
+      itemPendingDelete = id;
+      openModal('confirmModal');
+    }
+
+    document.getElementById('confirmActionBtn').addEventListener('click', () => {
+      if (itemPendingDelete) {
+        window.deleteItemFromCloud(itemPendingDelete);
+        itemPendingDelete = null;
+        closeModal('confirmModal');
+        showToast('Удалено', 'fa-trash-can');
+      }
+    });
+
+    function openFamilySyncModal() {
+      openModal('syncModal');
+    }
+
+    function copyFamilyCode() {
+      const code = document.getElementById('familyCodeInput').value;
+      const tempInput = document.createElement('input');
+      tempInput.value = code;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      showToast('Код скопирован в буфер!', 'fa-clipboard-check');
+    }
+
+    function applyFamilyCode() {
+      const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+      if (!code) {
+        showToast('Введите код комнаты', 'fa-triangle-exclamation');
+        return;
+      }
+      localStorage.setItem('family_hub_code', code);
+      window.AppState.familyCode = code;
+      document.getElementById('familyCodeInput').value = code;
+      closeModal('syncModal');
+      showToast('Синхронизация с комнатой активирована!', 'fa-circle-nodes');
+    }
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function showToast(message, icon = 'fa-check') {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toastMessage');
+      const iconEl = document.getElementById('toastIcon');
+
+      msgEl.textContent = message;
+      iconEl.className = `fa-solid ${icon} text-emerald-400`;
+
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(window._toastTimeout);
+      window._toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
+      }, 3000);
+    }
+
+    function updateSyncIndicator(online, text) {
+      const indicator = document.getElementById('syncStatusIndicator');
+      const txt = document.getElementById('syncText');
+      if (online) {
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>' + text;
+      } else {
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>' + text;
+      }
+    }
+
+    function escapeHtml(string) {
+      if (!string) return '';
+      const div = document.createElement('div');
+      div.textContent = string;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
